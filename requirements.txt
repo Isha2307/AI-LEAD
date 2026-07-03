@@ -1,36 +1,33 @@
 # Core Dependencies
 
-
 # Web Framework
-FastAPI==0.115.1
-uvicorn==0.34.0
-pydantic==2.11.0
-pydantic-settings==2.8.0
+FastAPI
+uvicorn
+pydantic
+pydantic-settings
 
 # Frontend
-streamlit==1.45.0
+streamlit
 
 # Database
-SQLAlchemy==2.0.38
-alembic==1.15.0
+SQLAlchemy
+alembic
 
 # API & HTTP
-httpx==0.28.1
-requests==2.32.3
+httpx
+requests
 
 # Google Gemini API
-google-generativeai==0.8.5
+google-generativeai
 
 # Environment Variables
-python-dotenv==1.1.0
+python-dotenv
 
 # Email Validation
-email-validator==2.2.0
+email-validator
 
 # Logging & Monitoring
-python-json-logger==3.2.1
-
-
+python-json-logger
 
 # Additional Utilities
-python-multipart==0.0.6
+python-multipart
