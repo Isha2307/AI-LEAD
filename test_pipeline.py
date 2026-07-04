@@ -2,18 +2,19 @@ import requests
 
 base_url = "http://127.0.0.1:8000/api/v1/leads"
 email_content = """
-From: Joe Pozzuoli <joe@joespizzanyc.com>
-Date: Sat, Jul 4, 2026 at 11:30 AM
-Subject: Question about your software
+From: Maya Lin <m.lin@lululemon.com>
+Date: Sun, Jul 5, 2026 at 9:15 AM
+Subject: Lead Qualification & Outreach Software Inquiry
 
-Hi there,
-I own Joe's Pizza in Greenwich Village. We're looking for a simple way to track our daily flour and tomato deliveries because our current spreadsheet isn't cutting it anymore. 
-Your website said you do "orchestration" - does that mean you can help us organize our inventory? We don't have a big budget, maybe $50 a month, just need something simple for my manager to use on his iPad.
-Let me know if you can help.
-Thanks,
-Joe
-Joe's Pizza NYC
+Hi team,
+I'm reaching out from Lululemon's regional marketing division. We've been looking at your AI-powered lead qualification and scoring features to help streamline our local gym partner outreach.
+Could you share how your Gemini-powered agent classifies hot versus cold leads, and if we can customize the generated outreach email templates? We're hoping to set up a pilot program next month.
+Looking forward to your reply.
+Best regards,
+Maya Lin
+Lululemon Athletica
 """
+
 
 print("1. Analyzing email...")
 res1 = requests.post(f"{base_url}/analyze-email", json={"email_content": email_content})
