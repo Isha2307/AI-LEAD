@@ -1,33 +1,10 @@
-# Core Dependencies
-
-# Web Framework
-FastAPI
-uvicorn
-pydantic
-pydantic-settings
-
-# Frontend
-streamlit
-
-# Database
-SQLAlchemy
-alembic
-
-# API & HTTP
-httpx
-requests
-
-# Google Gemini API
-google-generativeai
-
-# Environment Variables
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic[email]
 python-dotenv
-
-# Email Validation
-email-validator
-
-# Logging & Monitoring
-python-json-logger
-
-# Additional Utilities
+google-generativeai
+httpx
 python-multipart
+pymongo[srv]

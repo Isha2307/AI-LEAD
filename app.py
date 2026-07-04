@@ -6,6 +6,7 @@ Streamlit Web UI — seamless integration with the FastAPI backend.
 import streamlit as st
 import requests
 import time
+import os
 
 # ─── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -16,7 +17,7 @@ st.set_page_config(
 )
 
 # ─── Constants ─────────────────────────────────────────────────────────────────
-API_BASE = "http://localhost:8000/api/v1"
+API_BASE = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/") + "/api/v1"
 PRIORITY_COLORS = {"Hot": "#ff4b4b", "Warm": "#ffa500", "Cold": "#4b8bf4"}
 PRIORITY_ICONS  = {"Hot": "🔥", "Warm": "🔶", "Cold": "❄️"}
 
@@ -584,7 +585,7 @@ elif page == "🔄 Full Pipeline":
         score    = sc.get("lead_score") or sc.get("score", 0)
         priority = sc.get("priority", "Cold")
         color    = score_color(score)
-        st.success(f"✅ Score — **{score}/100** · {badge(priority)}", unsafe_allow_html=True)
+        st.markdown(f'<div class="stAlert" style="padding: 10px; border-radius: 8px; background-color: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); color: #fff;">✅ Score — <strong>{score}/100</strong> · {badge(priority)}</div>', unsafe_allow_html=True)
 
         # Step 3 — Email
         req_text = a.get("requirement", message[:150])

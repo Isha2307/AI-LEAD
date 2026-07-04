@@ -21,6 +21,7 @@ class Settings:
         self.API_PREFIX = os.getenv("API_PREFIX", "/api/v1")
 
         self.DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ai_lead.db")
+        self.IS_MONGODB = self.DATABASE_URL.startswith("mongodb://") or self.DATABASE_URL.startswith("mongodb+srv://")
 
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
