@@ -16,6 +16,7 @@ class Lead(Base):
 
     # AI-generated analysis fields
     analysis = Column(Text, nullable=True)  # JSON-serialized string of LeadAnalysisResult
+    company_research = Column(Text, nullable=True)
     qualification_score = Column(Float, nullable=True)
     is_qualified = Column(Boolean, nullable=True)
     
@@ -23,6 +24,7 @@ class Lead(Base):
     lead_score = Column(Integer, nullable=True)
     priority = Column(String(50), nullable=True)
     confidence = Column(Integer, nullable=True)
+    success_probability = Column(Integer, nullable=True)
     reasoning = Column(Text, nullable=True)  # JSON-serialized list of strings
     
     # Outreach fields

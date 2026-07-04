@@ -10,7 +10,7 @@ class GeminiService:
             cls._instance = super(GeminiService, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, api_key: str = None, model_name: str = "gemini-pro"):
+    def __init__(self, api_key: str = None, model_name: str = "gemini-2.5-flash"):
         if not hasattr(self, "initialized"):
             self.api_key = api_key
             self.model_name = model_name
@@ -74,46 +74,125 @@ class GeminiService:
         # Determine the request type based on the prompts
         if "sales lead qualification analyst" in system_prompt.lower():
             # Lead Analysis
-            company_match = re.search(r"Company:\s*(.*)", user_prompt)
-            company = company_match.group(1).strip() if company_match else "TechCorp"
+            name_match = re.search(r"Name:\s*([^\n]*)", user_prompt)
+            name = name_match.group(1).strip() if name_match else "Daniel Peterson"
             
-            industry_match = re.search(r"Industry:\s*(.*)", user_prompt)
-            industry = industry_match.group(1).strip() if industry_match else "Technology"
+            company_match = re.search(r"Company:\s*([^\n]*)", user_prompt)
+            company = company_match.group(1).strip() if company_match else "InnovateSolve"
+            
+            industry_match = re.search(r"Industry:\s*([^\n]*)", user_prompt)
+            industry = industry_match.group(1).strip() if industry_match else "SaaS"
+            
+            emp_match = re.search(r"Employee Count:\s*([^\n]*)", user_prompt)
+            emp_count_str = emp_match.group(1).strip() if emp_match else "280"
+            try:
+                emp_count = int(emp_count_str)
+            except ValueError:
+                emp_count = 50
+
+            msg_match = re.search(r"Lead Message:\s*(.*)", user_prompt, re.DOTALL)
+            lead_message = msg_match.group(1).strip() if msg_match else ""
+
+            # Check if there is budget or timeline info in message
+            budget = "Under $50K"
+            estimated_budget = "Under $50K"
+            if "180" in lead_message or "150" in lead_message or "120" in lead_message or "100" in lead_message or "enterprise" in lead_message.lower():
+                budget = "$100K-$200K (Enterprise budget)"
+                estimated_budget = "$100K-$200K (Enterprise budget)"
+            elif "50" in lead_message or "mid" in lead_message.lower():
+                budget = "$50K-$100K (Mid-Market budget)"
+                estimated_budget = "$50K-$100K (Mid-Market budget)"
+
+            timeline = "Within 6 months"
+            decision_timeline = "Within 6 months"
+            if "asap" in lead_message.lower() or "immediate" in lead_message.lower() or "this quarter" in lead_message.lower() or "q3" in lead_message.lower() or "q4" in lead_message.lower() or "immediate" in lead_message.lower():
+                timeline = "Immediate (Q3/Q4 implementation)"
+                decision_timeline = "Immediate (Q3/Q4 implementation)"
+            
+            urgency = "High" if "immediate" in timeline.lower() or "immediate" in lead_message.lower() or "asap" in lead_message.lower() else "Medium"
+            
+            company_size = "Enterprise" if emp_count >= 500 else ("Mid-Market" if emp_count >= 100 else "SMB")
+
+            # Extract any research findings that were appended to the lead message
+            company_research = ""
+            research_match = re.search(r"Company Research Findings:\s*(.*)", lead_message, re.DOTALL)
+            if research_match:
+                company_research = research_match.group(1).strip()
             
             mock_data = {
-                "summary": f"A mid-market company operating in the {industry} sector seeking to improve lead management.",
-                "requirement": "AI-powered lead qualification and scoring pipeline implementation.",
-                "budget": "$100K-$200K (Mid-Market budget)",
-                "timeline": "ASAP (Q3 2024 implementation)",
-                "urgency": "High",
-                "company_size": "Mid-Market",
+                "summary": f"Inbound request from {name} at {company} seeking sales pipeline automation and scoring systems.",
+                "requirement": "AI-powered CRM lead scoring pipeline implementation.",
+                "budget": budget,
+                "timeline": timeline,
+                "urgency": urgency,
+                "company_size": company_size,
                 "industry": industry,
                 "pain_points": [
-                    "Manual lead review takes too much time",
-                    "Slow response times causing lost sales",
-                    "Lack of automated priority scoring"
+                    "Manual review bottlenecks in sales queue",
+                    "Lead conversion rates dropping due to slow response",
+                    "Lack of priority scoring logic"
                 ],
                 "company_name": company,
-                "technology_stack": ["FastAPI", "SQLite", "Pydantic", "Python"],
-                "estimated_budget": "$100K-$200K (Mid-Market budget)",
-                "decision_timeline": "ASAP (Q3 2024 implementation)",
-                "key_decision_makers": ["Sales Operations Manager", "CTO"],
-                "engagement_level": "High"
+                "technology_stack": ["FastAPI", "MongoDB", "React", "Python"],
+                "estimated_budget": estimated_budget,
+                "decision_timeline": decision_timeline,
+                "key_decision_makers": ["VP of Operations", "Sales Operations Lead"],
+                "engagement_level": urgency,
+                "company_research": company_research
             }
             return json.dumps(mock_data)
             
         elif "sales lead scoring agent" in system_prompt.lower():
             # Lead Scoring
+            # Let's extract budget, timeline, and urgency from user_prompt to calculate score dynamically!
+            score = 65  # Default baseline
+            reasoning = []
+            
+            budget_match = re.search(r"Budget:\s*([^\n]*)", user_prompt)
+            budget = budget_match.group(1).lower() if budget_match else ""
+            
+            timeline_match = re.search(r"Timeline:\s*([^\n]*)", user_prompt)
+            timeline = timeline_match.group(1).lower() if timeline_match else ""
+            
+            urgency_match = re.search(r"Urgency:\s*([^\n]*)", user_prompt)
+            urgency = urgency_match.group(1).lower() if urgency_match else ""
+
+            # Check budget score
+            if "100k" in budget or "enterprise" in budget or "200k" in budget or "150k" in budget or "180k" in budget:
+                score += 15
+                reasoning.append("Substantial enterprise budget range identified ($100k+)")
+            elif "50k" in budget or "mid" in budget:
+                score += 10
+                reasoning.append("Solid mid-market budget range identified")
+            else:
+                score += 5
+                reasoning.append("No explicit large budget mentioned")
+
+            # Check timeline score
+            if "asap" in timeline or "immediate" in timeline or "q3" in timeline or "q4" in timeline:
+                score += 15
+                reasoning.append("Immediate to short-term implementation timeline")
+            else:
+                score += 5
+                reasoning.append("Medium-term timeline specified")
+
+            # Check urgency score
+            if "high" in urgency:
+                score += 5
+                reasoning.append("High deal urgency level reported")
+            else:
+                score += 2
+
+            # Let's cap score at 99
+            lead_score = min(score, 99)
+            priority = "Hot" if lead_score >= 80 else ("Warm" if lead_score >= 50 else "Cold")
+
             mock_data = {
-                "lead_score": 87,
-                "score": 87,
-                "priority": "Hot",
-                "confidence": 92,
-                "reasoning": [
-                    "High urgency timeline (ASAP/Q3)",
-                    "Substantial budget range ($100K-$200K)",
-                    "3 critical pain points identified in operations"
-                ]
+                "lead_score": lead_score,
+                "score": lead_score,
+                "priority": priority,
+                "confidence": 95,
+                "reasoning": reasoning
             }
             return json.dumps(mock_data)
             
@@ -194,3 +273,43 @@ class GeminiService:
                 pass
                 
         raise ValueError("Could not extract valid JSON from Gemini response")
+
+    def generate_content_with_search(self, system_prompt: str, user_prompt: str) -> str:
+        if self.is_mock:
+            app_logger.debug("Generating mock Gemini response with search...")
+            # Extract company name
+            company = "NexaSoft Technologies"
+            company_match = re.search(r"company:\s*'([^']+)'", user_prompt, re.IGNORECASE)
+            if company_match:
+                company = company_match.group(1).strip()
+            
+            # Extract name
+            contact = "Sarah Mitchell"
+            contact_match = re.search(r"contact:\s*'([^']+)'", user_prompt, re.IGNORECASE)
+            if contact_match:
+                contact = contact_match.group(1).strip()
+
+            return (
+                f"Research Summary for {company}:\n"
+                f"• Company Profile: {company} is a leading enterprise player offering innovative SaaS products and customized business solutions.\n"
+                f"• Approximate Company Size: 100-500 employees (Mid-Market to Large Enterprise).\n"
+                f"• Main Industry: Software development and technology consulting services.\n"
+                f"• Key Employee Roles Detected: {contact} (Executive Director / VP of Operations), who manages strategic digital transformation initiatives.\n"
+                f"• Online Presence & Status: Strong reputation for quality integrations and modern backend pipelines.\n"
+                f"• Tech Stack: Python, FastAPI, Node.js, React, AWS, Docker."
+            )
+            
+        try:
+            import google.generativeai as genai
+            # Try to initialize GenerativeModel with system instruction and Google Search grounding tool
+            app_logger.info(f"Gemini Service: Generating content with Google Search grounding for model {self.model_name}")
+            model = genai.GenerativeModel(
+                model_name=self.model_name,
+                system_instruction=system_prompt,
+                tools=[{"google_search": {}}]
+            )
+            response = model.generate_content(user_prompt)
+            return response.text
+        except Exception as e:
+            app_logger.warning(f"Failed calling Gemini with Google Search tool: {e}. Falling back to standard generate_content.")
+            return self.generate_content(system_prompt, user_prompt)

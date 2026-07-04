@@ -66,6 +66,7 @@ class LeadAnalysisResult(BaseModel):
     company_size: str = Field(default="")
     industry: str = Field(default="")
     pain_points: List[str] = Field(default_factory=list)
+    company_research: Optional[str] = None
 
     # Fields for integrated workflow compatibility
     company_name: Optional[str] = None
@@ -107,6 +108,15 @@ class LeadAnalysisOutput(BaseModel):
 
 
 # ==========================================
+# Email Ingestion Schemas
+# ==========================================
+
+class EmailAnalysisRequest(BaseModel):
+    email_content: str = Field(..., min_length=10)
+
+
+
+# ==========================================
 # Lead Scoring Schemas
 # ==========================================
 
@@ -125,6 +135,7 @@ class LeadScoringResult(BaseModel):
     priority: Literal["Hot", "Warm", "Cold"]
     confidence: int
     reasoning: List[str]
+    success_probability: Optional[int] = None
 
     @model_validator(mode="before")
     @classmethod

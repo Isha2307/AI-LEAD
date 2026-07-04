@@ -19,9 +19,11 @@ from backend.schemas.lead_schema import (
     EmailGenerationRequest,
     EmailGenerationOutput,
     EmailGenerationResult,
+    EmailAnalysisRequest,
 )
 from backend.utils.logger import app_logger
 from backend.config.settings import get_settings
+from pydantic import BaseModel, Field
 
 settings = get_settings()
 router = APIRouter(tags=["leads"])
@@ -111,6 +113,60 @@ async def analyze_lead_endpoint(request: LeadAnalysisRequest, db: Session = Depe
         app_logger.error(f"Unexpected error in analyze endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
+class EmailAnalysisResultOutput(BaseModel):
+    name: str
+    email: str
+    company: str
+    industry: str
+    employee_count: int
+    lead_message: str
+    analysis: LeadAnalysisResult
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+@router.post("/analyze-email", response_model=EmailAnalysisResultOutput)
+async def analyze_email_endpoint(request: EmailAnalysisRequest, db: Session = Depends(get_db)):
+    app_logger.info("POST /leads/analyze-email")
+    try:
+        parsed_data, analysis_result = lead_analyzer_agent.analyze_email_lead(request.email_content)
+        
+        # Calculate qualification score
+        score, is_qualified = lead_analyzer_agent.get_qualification_score(analysis_result)
+        
+        # Database persistence
+        db_data = {
+            "name": parsed_data.get("name"),
+            "company": parsed_data.get("company"),
+            "industry": parsed_data.get("industry"),
+            "lead_score": int(score),
+            "qualification_score": score,
+            "is_qualified": is_qualified,
+            "analysis": json.dumps(analysis_result.model_dump()),
+            "company_research": analysis_result.company_research,
+            "status": "qualified" if is_qualified else "disqualified"
+        }
+        save_or_update_lead(db, parsed_data.get("email"), db_data)
+        
+        return EmailAnalysisResultOutput(
+            name=parsed_data.get("name"),
+            email=parsed_data.get("email"),
+            company=parsed_data.get("company"),
+            industry=parsed_data.get("industry", "Unknown"),
+            employee_count=parsed_data.get("employee_count", 50),
+            lead_message=parsed_data.get("lead_message", ""),
+            analysis=analysis_result,
+            timestamp=datetime.utcnow().isoformat()
+        )
+        
+    except ValueError as e:
+        app_logger.error(f"Validation error in analyze-email endpoint: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
+    except RuntimeError as e:
+        app_logger.error(f"Gemini API error in analyze-email endpoint: {e}")
+        raise HTTPException(status_code=503, detail="AI service temporarily unavailable. Please try again.")
+    except Exception as e:
+        app_logger.error(f"Unexpected error in analyze-email endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
 @router.post("/score", response_model=LeadScoringOutput)
 async def score_lead_endpoint(request: LeadScoringRequest, db: Session = Depends(get_db)):
     app_logger.info(f"POST /leads/score - Company: {request.company}")
@@ -134,6 +190,7 @@ async def score_lead_endpoint(request: LeadScoringRequest, db: Session = Depends
             "lead_score": scoring_result.lead_score,
             "priority": scoring_result.priority,
             "confidence": scoring_result.confidence,
+            "success_probability": scoring_result.success_probability,
             "reasoning": json.dumps(scoring_result.reasoning),
             "is_qualified": scoring_result.lead_score >= 60,
             "status": "qualified" if scoring_result.lead_score >= 60 else "disqualified"
@@ -261,7 +318,16 @@ async def get_lead(lead_id: str, db = Depends(get_db)):
             "notes": lead.notes,
             "status": lead.status,
             "qualification_score": lead.qualification_score,
-            "is_qualified": lead.is_qualified
+            "is_qualified": lead.is_qualified,
+            "analysis": lead.analysis,
+            "company_research": lead.company_research,
+            "lead_score": lead.lead_score,
+            "priority": lead.priority,
+            "confidence": lead.confidence,
+            "success_probability": lead.success_probability,
+            "reasoning": lead.reasoning,
+            "email_subject": lead.email_subject,
+            "email_body": lead.email_body
         }
 
 @router.get("", response_model=List[dict])
@@ -287,8 +353,12 @@ async def list_leads(skip: int = 0, limit: int = 10, status: Optional[str] = Non
             "lead_score": l.lead_score,
             "priority": l.priority,
             "confidence": l.confidence,
+            "success_probability": l.success_probability,
             "is_qualified": l.is_qualified,
             "email_subject": l.email_subject,
+            "email_body": l.email_body,
+            "analysis": l.analysis,
+            "company_research": l.company_research,
             "created_at": l.created_at.isoformat() if l.created_at else None,
         } for l in leads]
 

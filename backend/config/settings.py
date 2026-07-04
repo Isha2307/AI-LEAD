@@ -24,7 +24,7 @@ class Settings:
         self.IS_MONGODB = self.DATABASE_URL.startswith("mongodb://") or self.DATABASE_URL.startswith("mongodb+srv://")
 
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
         cors_origins_raw = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:8501"]')
         try:

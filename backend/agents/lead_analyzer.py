@@ -122,3 +122,156 @@ class LeadAnalysisAgent:
                     "error": str(e)
                 })
         return results
+
+    def parse_email(self, email_content: str) -> Dict[str, Any]:
+        app_logger.info("LeadAnalysisAgent: Parsing raw email content")
+        system_prompt = """You are an expert sales operations analyst.
+Your job is to parse raw sales inquiry or prospect email content and extract structured lead info.
+You must extract:
+1. Contact Name (sender's name or person mentioned as contact)
+2. Contact Email (sender's email or email mentioned)
+3. Company Name (sender's company)
+4. Industry (if mentioned or inferred from company name / content)
+5. Estimated Employee Count / Company Size (if mentioned or inferred, default to 50 if unknown)
+6. Raw message summary or needs/requirements (as the lead_message)
+
+CRITICAL: Return ONLY a valid, raw JSON object. Do NOT wrap the JSON in markdown code blocks, do not write preambles, and do not write explanations.
+Your response must start with '{' and end with '}' and be valid JSON."""
+
+        user_prompt = f"""Raw Email Content:
+\"\"\"
+{email_content}
+\"\"\"
+
+Extract fields into this JSON structure:
+{{
+  "name": "Full Name",
+  "email": "email@example.com",
+  "company": "Company Name",
+  "industry": "Industry Sector",
+  "employee_count": 50,
+  "lead_message": "Extracted requirements or inquiry context from the email"
+}}"""
+        if self.gemini_service.is_mock:
+            # Simple heuristic/mock extraction
+            import re
+            
+            # 1. Extract email
+            email = "unknown@company.com"
+            email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", email_content)
+            if email_match:
+                email = email_match.group(0).strip()
+            
+            # 2. Extract name
+            name = "Unknown"
+            # Try to match From: Name <email>
+            from_match = re.search(r"From:\s*([^<\n]+)", email_content)
+            if from_match:
+                name = from_match.group(1).replace('"', '').replace("'", "").strip()
+            else:
+                # Try to extract name from signature block
+                sig_match = re.search(r"(?:regards|sincerely|best|thanks|thank you),?\s*\n+([A-Z][a-zA-Z'\s]+)", email_content, re.IGNORECASE)
+                if sig_match:
+                    name = sig_match.group(1).strip().split('\n')[0].strip()
+            
+            # 3. Extract company
+            company = "Unknown Company"
+            # Look for "at CompanyName" or company indicators
+            comp_match = re.search(r"(?:at|from)\s+([A-Z][a-zA-Z0-9\s]{2,40}\s+(?:Solutions|Technologies|Software|Corp|Inc|Co\.|LLC|Group|Consulting))", email_content)
+            if comp_match:
+                company = comp_match.group(1).strip()
+            else:
+                # Use email domain as fallback
+                domain_parts = email.split('@')
+                if len(domain_parts) > 1:
+                    domain = domain_parts[1].split('.')[0]
+                    company = domain.replace('-', ' ').title()
+            
+            # 4. Extract employee count
+            employee_count = 50
+            emp_match = re.search(r"(\d+)\s*(?:employees|people|staff|workers)", email_content, re.IGNORECASE)
+            if emp_match:
+                employee_count = int(emp_match.group(1))
+            else:
+                emp_match_2 = re.search(r"(?:size|count) is (?:about|around)?\s*(\d+)", email_content, re.IGNORECASE)
+                if emp_match_2:
+                    employee_count = int(emp_match_2.group(1))
+            
+            # 5. Extract Industry
+            industry = "Technology"
+            for ind in ["SaaS", "Software", "Workflow", "Healthcare", "Consulting", "Finance", "Retail", "Manufacturing"]:
+                if ind.lower() in email_content.lower():
+                    industry = ind
+                    break
+                    
+            # 6. Extract lead message / requirement
+            lead_message = email_content
+            # Try to grab the body after greeting
+            body_match = re.search(r"(?:Dear|Hi|Hello)[^\n]*\n+(.*)", email_content, re.DOTALL)
+            if body_match:
+                lead_message = body_match.group(1).strip()
+            
+            # Limit message length
+            if len(lead_message) > 500:
+                lead_message = lead_message[:500] + "..."
+            
+            return {
+                "name": name,
+                "email": email,
+                "company": company,
+                "industry": industry,
+                "employee_count": employee_count,
+                "lead_message": lead_message
+            }
+
+        response_text = self.gemini_service.generate_content(system_prompt, user_prompt)
+        response_dict = self.gemini_service.extract_json_from_text(response_text)
+        return response_dict
+
+    def research_company(self, company_name: str, employee_name: str = None) -> str:
+        app_logger.info(f"LeadAnalysisAgent: Researching company: {company_name}")
+        system_prompt = """You are an expert market researcher and business intelligence analyst.
+Your job is to search for and compile public information about a target company and its key team members.
+You must find:
+1. What the company does (industry, product/service, business model).
+2. Size, scale, and general market presence.
+3. Information about key leadership or the specific contact if mentioned.
+4. Technologies they are likely using or interested in.
+
+Provide a concise, professional research summary formatted as bullet points."""
+
+        user_prompt = f"Perform business research on the company: '{company_name}'"
+        if employee_name:
+            user_prompt += f" and target contact: '{employee_name}'"
+
+        response_text = self.gemini_service.generate_content_with_search(system_prompt, user_prompt)
+        return response_text
+
+    def analyze_email_lead(self, email_content: str) -> Tuple[Dict[str, Any], LeadAnalysisResult]:
+        # Step 1: Parse Email
+        parsed_data = self.parse_email(email_content)
+        
+        # Step 2: Research Company
+        company = parsed_data.get("company", "Unknown")
+        name = parsed_data.get("name", "Unknown")
+        research_notes = self.research_company(company, name)
+        
+        # Step 3: Standard Lead Analysis with Enriched Context
+        enriched_message = (
+            f"Lead Inquiry Message:\n{parsed_data.get('lead_message')}\n\n"
+            f"Company Research Findings:\n{research_notes}"
+        )
+        
+        analysis = self.analyze_lead(
+            name=parsed_data.get("name"),
+            email=parsed_data.get("email"),
+            company=parsed_data.get("company"),
+            industry=parsed_data.get("industry"),
+            employee_count=parsed_data.get("employee_count"),
+            lead_message=enriched_message
+        )
+        
+        # Set the research on the analysis result object
+        analysis.company_research = research_notes
+        
+        return parsed_data, analysis

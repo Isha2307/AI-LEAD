@@ -68,6 +68,5 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": "; ".join(error_details), "errors": exc.errors()},
     )
 
-
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)
