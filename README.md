@@ -125,19 +125,20 @@ PYTHONPATH=. python backend/main.py
 Backend runs at → **http://localhost:8000**
 - Swagger docs: http://localhost:8000/api/docs
 
-### Terminal 2 — Frontend (Streamlit)
+### Terminal 2 — Frontend (React/Vite)
 
-**Windows:**
-```powershell
-& ".venv\Scripts\streamlit.exe" run app.py
-```
-
-**macOS / Linux:**
+Make sure you've installed the frontend dependencies first (you can do this from the root directory):
 ```bash
-streamlit run app.py
+npm install
 ```
 
-Frontend runs at → **http://localhost:8501**
+To run the React app development server:
+```bash
+npm start
+```
+
+Frontend runs at → **http://localhost:5173** (or the port shown in your terminal, which proxies `/api` calls to the backend automatically).
+
 
 ---
 

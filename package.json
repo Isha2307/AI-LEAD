@@ -1,0 +1,11 @@
+{
+  "name": "ai-lead-root",
+  "version": "1.0.0",
+  "description": "Root script wrapper for AI Lead Qualifier",
+  "scripts": {
+    "install-all": "npm install --prefix frontend",
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run dev --prefix frontend"
+  }
+}
