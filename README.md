@@ -31,7 +31,7 @@ AI-LEAD/
 │   ├── services/
 │   │   ├── gemini_service.py     # Google Gemini integration
 │   │   └── lead_service.py       # Database operations
-│   ├── database/database.py      # SQLAlchemy setup
+│   ├── database/database.py      # MongoDB setup
 │   ├── models/lead.py            # ORM models
 │   ├── schemas/lead_schema.py    # Pydantic schemas
 │   ├── config/settings.py        # Environment settings
